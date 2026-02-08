@@ -23,7 +23,7 @@ supported, and consistent approach for initial OTT foundations.
 ## Platform Notes
 - Android/iOS: `react-native-webview` renders the YouTube embed
 - Web: native `<iframe>` embed
-- Android TV: focusable tiles using `Pressable` + `Platform.isTV`
+- Android TV: focusable tiles using `TouchableOpacity` + `Platform.isTV`
 
 ## Run (mobile)
 This repository is intentionally minimal; wire it into your RN CLI project:

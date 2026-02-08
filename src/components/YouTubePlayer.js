@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
+import styles from "./YouTubePlayer.styles";
 
 export default function YouTubePlayer({ videoId }) {
   const [errorCode, setErrorCode] = useState(null);
@@ -112,7 +113,11 @@ export default function YouTubePlayer({ videoId }) {
             This video can’t be played in an embedded player (error {errorCode}).
           </Text>
           <Pressable
-            style={styles.errorButton}
+            focusable
+            style={({ pressed }) => [
+              styles.errorButton,
+              pressed && { opacity: 0.8 },
+            ]}
             onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${videoId}`)}
           >
             <Text style={styles.errorButtonText}>Open in YouTube</Text>
@@ -123,47 +128,3 @@ export default function YouTubePlayer({ videoId }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-    aspectRatio: 16 / 9,
-    backgroundColor: "#000",
-  },
-  webview: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-  iframe: {
-    width: "100%",
-    height: "100%",
-    border: 0,
-  },
-  errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.85)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  errorTitle: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  errorText: {
-    color: "#CFCFCF",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  errorButton: {
-    backgroundColor: "#E50914",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 6,
-  },
-  errorButtonText: {
-    color: "#FFF",
-    fontWeight: "700",
-  },
-});

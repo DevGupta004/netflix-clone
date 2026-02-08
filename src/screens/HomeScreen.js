@@ -1,232 +1,246 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import {
   FlatList,
+  Image,
   ImageBackground,
   Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
-  StatusBar,
-  StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
 import { VIDEOS } from "../data/videos";
 import VideoCard from "../components/VideoCard";
+import styles from "./HomeScreen.styles";
+import useTVGrid from "../hooks/useTVGrid";
 
-export default function HomeScreen({ navigation }) {
-  const { width } = useWindowDimensions();
+const netflixLogo = require("../assets/netflix-logo.png");
+
+export default function HomeScreen({ navigation, route }) {
+  const { width, height } = useWindowDimensions();
   const isTV = Platform.isTV;
   const isMobile = width < 600;
+  const scrollRef = useRef(null);
+  const railRefs = useRef([]);
+  const profile = route?.params?.profile;
 
   const hero = VIDEOS[0];
   const railItemWidth = useMemo(() => {
     if (isTV) return 260;
     if (width >= 1200) return 240;
     if (width >= 800) return 210;
-    return 180;
+    return 140;
   }, [isTV, width]);
 
   const rails = useMemo(
     () => [
+      { title: "Continue Watching", data: VIDEOS.slice(0, 5), showTitle: true },
       { title: "Trending Now", data: VIDEOS },
-      { title: "Top Picks", data: [...VIDEOS].reverse() },
-      { title: "Because You Watched", data: [...VIDEOS, ...VIDEOS] },
+      { title: "Top 10 in India Today", data: VIDEOS.slice(0, 10), isTop10: true },
+      { title: "New Releases", data: [...VIDEOS].reverse() },
+      { title: "Popular on Netflix", data: [...VIDEOS].sort(() => Math.random() - 0.5) },
+      { title: "Watch It Again", data: VIDEOS.slice(3) },
     ],
     []
   );
 
+  // Section layout: [hero buttons, rail0, rail1, ...]
+  const sections = useMemo(
+    () => [2, ...rails.map((r) => r.data.length)],
+    [rails]
+  );
+
+  const handleSelect = useCallback(
+    ({ section, item }) => {
+      if (section === 0) {
+        if (item === 0) {
+          navigation.navigate("Player", { videoId: hero.id, title: hero.title });
+        }
+      } else {
+        const railIndex = section - 1;
+        const video = rails[railIndex]?.data[item];
+        if (video) {
+          navigation.navigate("Player", { videoId: video.id, title: video.title });
+        }
+      }
+    },
+    [navigation, hero, rails]
+  );
+
+  const focus = useTVGrid({ sections, onSelect: handleSelect });
+
+  // Auto-scroll rail to focused item on TV
+  useMemo(() => {
+    if (!isTV) return;
+    if (focus.section > 0) {
+      const railIdx = focus.section - 1;
+      const flatList = railRefs.current[railIdx];
+      if (flatList) {
+        try {
+          flatList.scrollToIndex({
+            index: Math.max(0, focus.item - 1),
+            animated: true,
+            viewPosition: 0,
+          });
+        } catch (e) {
+          // ignore scroll errors
+        }
+      }
+    }
+  }, [isTV, focus.section, focus.item]);
+
+  const heroHeight = isTV ? 480 : isMobile ? 450 : 420;
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={[styles.topBar, isMobile && styles.topBarMobile]}>
-          <View style={styles.brandRow}>
-            <Text style={styles.brand}>NETFLIX</Text>
-            {!isMobile ? (
-              <View style={styles.topNav}>
-                <Text style={[styles.topLink, styles.topLinkActive]}>Home</Text>
-                <Text style={styles.topLink}>TV Shows</Text>
-                <Text style={styles.topLink}>Movies</Text>
-                <Text style={styles.topLink}>My List</Text>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* ─── HERO BANNER ─── */}
+        <View style={{ height: heroHeight }}>
+          <ImageBackground
+            source={{ uri: hero.thumbnail }}
+            style={styles.hero}
+            imageStyle={styles.heroImage}
+          >
+            {/* Top bar overlaid on hero */}
+            <View style={[styles.topBar, isMobile && styles.topBarMobile]}>
+              <View style={styles.brandRow}>
+                <Image source={netflixLogo} style={styles.brandLogo} resizeMode="contain" />
+                {!isMobile ? (
+                  <View style={styles.topNav}>
+                    <Text style={[styles.topLink, styles.topLinkActive]}>Home</Text>
+                    <Text style={styles.topLink}>TV Shows</Text>
+                    <Text style={styles.topLink}>Movies</Text>
+                    <Text style={styles.topLink}>New & Popular</Text>
+                    <Text style={styles.topLink}>My List</Text>
+                  </View>
+                ) : null}
+                {profile ? (
+                  <View style={styles.profileBadge}>
+                    <Text style={styles.profileBadgeText}>{profile.name?.charAt(0)}</Text>
+                  </View>
+                ) : null}
               </View>
-            ) : null}
-          </View>
-          {isMobile ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.topNavMobile}
-            >
-              <Text style={[styles.topLink, styles.topLinkActive]}>Home</Text>
-              <Text style={styles.topLink}>TV Shows</Text>
-              <Text style={styles.topLink}>Movies</Text>
-              <Text style={styles.topLink}>My List</Text>
-            </ScrollView>
-          ) : null}
+              {isMobile ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.topNavMobile}
+                >
+                  <Text style={[styles.topLink, styles.topLinkActive]}>Home</Text>
+                  <Text style={styles.topLink}>TV Shows</Text>
+                  <Text style={styles.topLink}>Movies</Text>
+                  <Text style={styles.topLink}>My List</Text>
+                </ScrollView>
+              ) : null}
+            </View>
+
+            {/* Bottom gradient */}
+            <View style={styles.heroGradientTop} />
+            <View style={styles.heroGradient} />
+
+            {/* Hero content */}
+            <View style={styles.heroContent}>
+              <Text style={[styles.heroTitle, isMobile && styles.heroTitleMobile]} numberOfLines={2}>
+                {hero.title}
+              </Text>
+              <Text style={styles.heroGenre}>{hero.genre}</Text>
+              <View style={styles.heroActions}>
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate("Player", { videoId: hero.id, title: hero.title })
+                  }
+                  style={({ pressed }) => [
+                    styles.playButton,
+                    isTV && focus.section === 0 && focus.item === 0 && styles.buttonFocused,
+                    pressed && styles.buttonPressed,
+                  ]}
+                >
+                  <Text style={styles.playText}>▶  Play</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {}}
+                  style={({ pressed }) => [
+                    styles.infoButton,
+                    isTV && focus.section === 0 && focus.item === 1 && styles.buttonFocused,
+                    pressed && styles.buttonPressed,
+                  ]}
+                >
+                  <Text style={styles.infoText}>ⓘ  My List</Text>
+                </Pressable>
+              </View>
+            </View>
+          </ImageBackground>
         </View>
 
-        <ImageBackground source={{ uri: hero.thumbnail }} style={styles.hero} imageStyle={styles.heroImage}>
-          <View style={styles.heroOverlay} />
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTitle} numberOfLines={2}>
-              {hero.title}
-            </Text>
-            <View style={styles.heroActions}>
-              <Pressable
-                style={styles.playButton}
-                onPress={() => navigation.navigate("Player", { videoId: hero.id, title: hero.title })}
-              >
-                <Text style={styles.playText}>Play</Text>
-              </Pressable>
-              <Pressable style={styles.infoButton}>
-                <Text style={styles.infoText}>More Info</Text>
-              </Pressable>
-            </View>
-          </View>
-        </ImageBackground>
+        {/* ─── CONTENT RAILS ─── */}
+        {rails.map((rail, railIndex) => {
+          const sectionIndex = railIndex + 1;
 
-        {rails.map((rail, railIndex) => (
-          <View key={rail.title} style={styles.rail}>
-            <Text style={styles.railTitle}>{rail.title}</Text>
-            <FlatList
-              data={rail.data}
-              keyExtractor={(item, index) => `${rail.title}-${item.id}-${index}`}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.railContent}
-              renderItem={({ item, index }) => (
-                <View style={[styles.railItem, { width: railItemWidth }]}>
-                  <VideoCard
-                    item={item}
-                    isFirst={railIndex === 0 && index === 0}
-                    onPress={(video) =>
-                      navigation.navigate("Player", { videoId: video.id, title: video.title })
-                    }
-                  />
-                </View>
-              )}
-            />
-          </View>
-        ))}
+          return (
+            <View key={rail.title} style={styles.rail}>
+              <Text style={styles.railTitle}>{rail.title}</Text>
+              <FlatList
+                ref={(ref) => {
+                  railRefs.current[railIndex] = ref;
+                }}
+                data={rail.data}
+                keyExtractor={(item, index) => `${rail.title}-${item.id}-${index}`}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.railContent}
+                onScrollToIndexFailed={() => {}}
+                renderItem={({ item, index }) => {
+                  const focused =
+                    isTV && focus.section === sectionIndex && focus.item === index;
+
+                  if (rail.isTop10) {
+                    return (
+                      <Pressable
+                        key={`${rail.title}-${item.id}-${index}`}
+                        onPress={() =>
+                          navigation.navigate("Player", { videoId: item.id, title: item.title })
+                        }
+                        style={({ pressed }) => [
+                          styles.top10Item,
+                          { width: railItemWidth + 40 },
+                          focused && styles.top10Focused,
+                          pressed && styles.cardPressed,
+                        ]}
+                      >
+                        <Text style={styles.top10Number}>{index + 1}</Text>
+                        <Image
+                          source={{ uri: item.thumbnail }}
+                          style={styles.top10Image}
+                        />
+                      </Pressable>
+                    );
+                  }
+
+                  return (
+                    <View style={[styles.railItem, { width: railItemWidth }]}>
+                      <VideoCard
+                        item={item}
+                        isFocused={focused}
+                        showTitle={rail.showTitle}
+                        onPress={(video) =>
+                          navigation.navigate("Player", { videoId: video.id, title: video.title })
+                        }
+                      />
+                    </View>
+                  );
+                }}
+              />
+            </View>
+          );
+        })}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>© 2026 Netflix Clone Demo</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-  content: {
-    paddingBottom: 32,
-  },
-  topBar: {
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight || 0) + 6 : 6,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-  },
-  topBarMobile: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-  },
-  brand: {
-    color: "#E50914",
-    fontSize: 24,
-    fontWeight: "900",
-    letterSpacing: 0.6,
-  },
-  topNav: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  topNavMobile: {
-    paddingHorizontal: 2,
-    gap: 16,
-  },
-  topLink: {
-    color: "#CFCFCF",
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-  },
-  topLinkActive: {
-    color: "#FFF",
-  },
-  hero: {
-    height: 360,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    overflow: "hidden",
-    justifyContent: "flex-end",
-    backgroundColor: "#111",
-  },
-  heroImage: {
-    resizeMode: "cover",
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
-  heroContent: {
-    padding: 16,
-  },
-  heroTitle: {
-    color: "#FFF",
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  heroActions: {
-    marginTop: 12,
-    flexDirection: "row",
-    gap: 12,
-  },
-  playButton: {
-    backgroundColor: "#FFF",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 6,
-  },
-  playText: {
-    color: "#000",
-    fontWeight: "700",
-  },
-  infoButton: {
-    backgroundColor: "rgba(109, 109, 110, 0.7)",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 6,
-  },
-  infoText: {
-    color: "#FFF",
-    fontWeight: "600",
-  },
-  rail: {
-    marginTop: 20,
-  },
-  railTitle: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "600",
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  railContent: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  railItem: {
-    paddingVertical: 4,
-  },
-});

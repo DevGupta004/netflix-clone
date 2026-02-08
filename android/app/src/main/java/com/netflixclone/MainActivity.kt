@@ -1,6 +1,7 @@
 package com.netflixclone
 
 import android.os.Bundle
+import android.view.KeyEvent
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -27,12 +28,17 @@ class MainActivity : ReactActivity() {
 
     /**
      * Called when the activity is first created.
-     * We override this to set the window background to black for a smoother
-     * transition while React Native loads.
      */
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Set initial window background to black to match our dark theme
         window.decorView.setBackgroundColor(android.graphics.Color.BLACK)
         super.onCreate(savedInstanceState)
+    }
+
+    /**
+     * Forward D-pad key events to our TVKeyEventModule so JS can receive them.
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        TVKeyEventModule.instance?.dispatchKeyEvent(keyCode, KeyEvent.ACTION_DOWN)
+        return super.onKeyDown(keyCode, event)
     }
 }

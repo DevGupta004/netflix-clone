@@ -1,12 +1,39 @@
-import React from "react";
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback } from "react";
+import { Platform, Pressable, SafeAreaView, Text, View } from "react-native";
 import YouTubePlayer from "../components/YouTubePlayer";
+import styles from "./PlayerScreen.styles";
+import useTVDpad from "../hooks/useTVDpad";
 
-export default function PlayerScreen({ route }) {
+export default function PlayerScreen({ navigation, route }) {
   const { videoId, title } = route.params;
+  const isTV = Platform.isTV;
+
+  const handleSelect = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  const { focusedIndex } = useTVDpad({
+    itemCount: 1,
+    columns: 1,
+    onSelect: handleSelect,
+  });
 
   return (
     <SafeAreaView style={styles.container}>
+      {isTV && (
+        <View style={styles.backRow}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={({ pressed }) => [
+              styles.backButton,
+              isTV && focusedIndex === 0 && styles.backButtonFocused,
+              pressed && styles.backButtonPressed,
+            ]}
+          >
+            <Text style={styles.backText}>← Back</Text>
+          </Pressable>
+        </View>
+      )}
       <View style={styles.playerWrap}>
         <YouTubePlayer videoId={videoId} />
       </View>
@@ -16,23 +43,3 @@ export default function PlayerScreen({ route }) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-  playerWrap: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  meta: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  title: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "600",
-  },
-});
