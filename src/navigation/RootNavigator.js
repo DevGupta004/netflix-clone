@@ -1,10 +1,12 @@
 import React from "react";
+import { Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import PlayerScreen from "../screens/PlayerScreen";
 
 const Stack = createNativeStackNavigator();
+const isTV = Platform.isTV;
 
 export default function RootNavigator() {
   return (
@@ -23,6 +25,13 @@ export default function RootNavigator() {
       <Stack.Screen
         name="Player"
         component={PlayerScreen}
+        options={{
+          headerShown: !isTV,
+          headerStyle: { backgroundColor: "#000" },
+          headerTintColor: "#FFF",
+          headerTitle: "",
+          headerTransparent: true,
+        }}
       />
     </Stack.Navigator>
   );
