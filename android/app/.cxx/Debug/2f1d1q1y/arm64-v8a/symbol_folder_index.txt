@@ -1,1 +1,0 @@
-/Users/e5000938/myWorkSpace/LocalMind/android/app/build/intermediates/cxx/Debug/2f1d1q1y/obj/arm64-v8a

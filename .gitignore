@@ -26,6 +26,7 @@ android/.gradle/
 android/.idea/
 android/local.properties
 android/.cxx/
+android/app/.cxx/
 android/build/
 android/app/build/
 
